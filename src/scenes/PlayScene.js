@@ -13,33 +13,68 @@ const PIPES_TO_RENDER = 4;
 
 class PlayScene extends Phaser.Scene {
   constructor(config) {
-    super("PlayScene");
+    super("PlayScene"); // With this name, we can switch between scenes
+
     this.config = config;
     this.bird = null;
     this.pipes = null;
+    this.pause = null;
 
     this.pipeHorizontalDistance = 0;
     this.pipeDistanceRange = [150, 250];
     this.pipeHorizontalDistanceRange = [350, 400];
-    this.flapVelocity = 250;
-  }
+    this.flapVelocity = 300;
 
-  //-------------------- Loading assets, such as images, music, animations --------------------
-  preload() {
-    // this = scene
-    this.load.image("sky", "assets/sky.png");
-    this.load.image("bird", "assets/bird.png");
-    this.load.image("pipe", "assets/pipe.png");
+    this.score = 0;
+    this.scoreText = "";
+
+    this.bestScore = 0;
+    this.bestScoreText = "";
   }
 
   create() {
-    // -------------------- BASICS OF PHASER CREATE ------------------------------
+    this.createBG();
 
+    this.createBird();
+
+    this.createPipes();
+
+    this.createColliders();
+
+    this.createScore();
+
+    this.createBestScore();
+
+    this.createPause();
+
+    this.handleInputs();
+  }
+
+  // --------------------- Executed 60 times per second ---------------------
+  update() {
+    // delta - time from the last frame
+
+    //----------------- EXAMPLE OF MOVING Y OBJECT FORTH AND BACK -----------------
+    // bird.x of bird.body.x or bird.body.position.x
+    // if (bird.body.position.x >= config.width - bird.width) {
+    //   bird.body.velocity.x = -VELOCITY;
+    // } else if (bird.body.position.x <= 0) {
+    //   bird.body.velocity.x = VELOCITY;
+    // }
+
+    this.checkGameStatus();
+
+    this.recyclePipes();
+  }
+
+  createBG() {
     // this.add.image - 3 args: x , y , key_of_the_image
     // this.add.image(0, 0, "sky"); // if 0,0 it will set middle of a image in 0,0 coordinates scene point
 
     this.add.image(0, 0, "sky").setOrigin(0, 0); // .setOrigin(0, 0) changes the origin to the top-left corner of the image.
+  }
 
+  createBird() {
     // -------------------- Creates a basic sprite ------------------------------
     // *Mainly used for static images or objects that are manually moved*
 
@@ -53,52 +88,88 @@ class PlayScene extends Phaser.Scene {
       .sprite(this.config.startPosition.x, this.config.startPosition.y, "bird") // sprites are used for animated objects.
       .setOrigin(0);
 
-    this.bird.body.gravity.y = 400; // object will fall faster for 200px per sec (falling speed increases over time)
+    this.bird.body.gravity.y = 600; // object will fall faster for 200px per sec (falling speed increases over time)
+
+    this.bird.setCollideWorldBounds(true); // Phaser enables collision between the game object and the edges of the game world.
 
     // bird.body.velocity.y = 200; // Velocity is a fixed speed (200px fixed speed)
+  }
 
-    // <- EXAMPLE OF MOVING Y OBJECT FORTH AND BACK->
-    // bird.body.velocity.x = VELOCITY;
-
-    // --------------------- ADDING PIPE -----------------------------
-
+  createPipes() {
     this.pipes = this.physics.add.group();
 
     for (let i = 0; i < PIPES_TO_RENDER; i++) {
-      const upperPipe = this.pipes.create(0, 0, "pipe").setOrigin(0, 1); // create - the same as add.spite()
-      const lowerPipe = this.pipes.create(0, 0, "pipe").setOrigin(0, 0);
+      const upperPipe = this.pipes
+        .create(0, 0, "pipe")
+        .setImmovable(true) // disable to move this objects
+        .setOrigin(0, 1); // create - the same as add.spite()
+      const lowerPipe = this.pipes
+        .create(0, 0, "pipe")
+        .setImmovable(true)
+        .setOrigin(0, 0);
       this.placePipe(upperPipe, lowerPipe);
     }
 
     this.pipes.setVelocityX(-200);
+  }
 
+  createColliders() {
+    this.physics.add.collider(this.bird, this.pipes, this.gameOver, null, this);
+  }
+
+  // this.pipes.getChildren().forEach((pipe) => {
+  //   // getBounds().right - get right edge of the pipe
+  //   if (pipe.getBounds().right <= 0) {
+  //     tempPipes.push(pipe);
+  //     if (tempPipes.length === 2) {
+  //       this.placePipe(...tempPipes);
+  //       tempPipes = [];
+  //     }
+  //   }
+  // });
+  createScore() {
+    this.score = 0;
+    this.scoreText = this.add.text(16, 16, `Score: ${0}`, {
+      fontSize: "32px",
+      fill: "#000",
+    });
+  }
+
+  createBestScore() {
+    this.bestScoreText = this.add.text(16, 50, `BestScore: ${this.bestScore}`, {
+      fontSize: "20px",
+      fill: "#000",
+    });
+  }
+
+  createPause() {
+    const pauseButton = this.add
+      .image(this.config.width - 10, this.config.height - 10, "pause")
+      .setInteractive()
+      .setScale(3)
+      .setOrigin(1, 1);
+
+    pauseButton.on("pointerdown", () => {
+      this.physics.pause();
+      console.log(this.physics.pause());
+    });
+  }
+
+  handleInputs() {
     // --------------------- EVENT OF PRESSING BUTTON ---------------------
     this.input.on("pointerdown", this.flat, this);
     this.input.keyboard.on("keydown-SPACE", this.flat, this);
-    this.input.keyboard.on("keydown-R", this.restartBirdPosition, this);
+    this.input.keyboard.on("keydown-R", this.gameOver, this);
   }
 
-  // --------------------- Executed 60 times per second ---------------------
-  update() {
-    // delta - time from the last frame
-    // --------------------------------------------------
-    // if bird position x >= width of canvas, go back to the left
-    // if x is <= 0 then move back to the right
-
-    // <- EXAMPLE OF MOVING Y OBJECT FORTH AND BACK->
-    //  ----------- bird.x of bird.body.x or bird.body.position.x
-    // if (bird.body.position.x >= config.width - bird.width) {
-    //   bird.body.velocity.x = -VELOCITY;
-    // } else if (bird.body.position.x <= 0) {
-    //   bird.body.velocity.x = VELOCITY;
-    // }
-    // --------------------------------------------------
+  checkGameStatus() {
     // if bird Y position is small then 0 or greater than height of the canvas
-    if (this.bird.body.position.y > this.config.height || this.bird.y < 0) {
-      this.restartBirdPosition();
+    if (
+      this.bird.getBounds().bottom >= this.config.height ||
+      this.bird.y <= 0
+    ) {
+      this.gameOver();
     }
-
-    this.recyclePipes();
   }
 
   placePipe(uPipe, lPipe) {
@@ -119,10 +190,25 @@ class PlayScene extends Phaser.Scene {
     lPipe.y = uPipe.y + pipeVerticalDistance;
   }
 
-  restartBirdPosition() {
-    this.bird.x = this.config.startPosition.x;
-    this.bird.y = this.config.startPosition.y;
-    this.bird.body.velocity.y = 0;
+  gameOver() {
+    // --------------------- SET DEFAULT POSITION ---------------------
+    // this.bird.x = this.config.startPosition.x;
+    // this.bird.y = this.config.startPosition.y;
+    // this.bird.body.velocity.y = 0;
+
+    // --------------------- PAUSE AND RESTART GAME IN 1s ---------------------
+
+    this.physics.pause();
+    this.bird.setTint(0xee4824); // set color for object
+
+    this.time.addEvent({
+      delay: 1000,
+      callback: () => {
+        this.score = 0;
+        // this.scene.restart();
+      },
+      loop: false,
+    });
   }
 
   flat() {
@@ -136,9 +222,10 @@ class PlayScene extends Phaser.Scene {
       // getBounds().right - get right edge of the pipe
       if (pipe.getBounds().right <= 0) {
         tempPipes.push(pipe);
+
         if (tempPipes.length === 2) {
+          this.increaseScore();
           this.placePipe(...tempPipes);
-          tempPipes = [];
         }
       }
     });
@@ -153,6 +240,16 @@ class PlayScene extends Phaser.Scene {
     });
 
     return rightMostX;
+  }
+
+  // --------------------- INCREASE SCORE ---------------------
+  increaseScore() {
+    this.score++;
+    this.scoreText.setText(`Score: ${this.score}`);
+    if (this.score > this.bestScore) {
+      this.bestScore = this.score;
+      this.bestScoreText.setText(`BestScore: ${this.score}`);
+    }
   }
 }
 

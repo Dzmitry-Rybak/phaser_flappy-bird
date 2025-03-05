@@ -6,9 +6,9 @@ import PreloadScene from "./scenes/PreloadScene";
 import ScoreScene from "./scenes/ScoreScene";
 import PauseScene from "./scenes/PauseScene";
 
-const WIDTH = 400;
-const HEIGHT = 600;
-const BIRD_POSITION = { x: WIDTH / 10, y: HEIGHT / 2 };
+const WIDTH = window.innerWidth;
+const HEIGHT = window.innerHeight - 4;
+const BIRD_POSITION = { x: WIDTH / 30, y: HEIGHT / 2 };
 
 const SHARED_CONFIG = {
   width: WIDTH,
@@ -31,7 +31,7 @@ const config = {
     // Arcade physics plugin, manages physics simulation
     default: "arcade", // This tells Phaser to use the Arcade Physics engine for any physics calculations in the game
     arcade: {
-      debug: true,
+      debug: false,
       // gravity: { y: 400 }, // will set gravity to all object in this scene
     },
   },

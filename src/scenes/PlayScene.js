@@ -32,16 +32,16 @@ class PlayScene extends BaseScene {
     this.currentDifficulty = "easy";
     this.difficulties = {
       easy: {
-        pipeHorizontalDistanceRange: [300, 350],
-        pipeVerticalDistanceRange: [150, 200],
+        pipeHorizontalDistanceRange: [480, 500],
+        pipeVerticalDistanceRange: [340, 380],
       },
       normal: {
-        pipeHorizontalDistanceRange: [280, 330],
-        pipeVerticalDistanceRange: [140, 190],
+        pipeHorizontalDistanceRange: [380, 400],
+        pipeVerticalDistanceRange: [340, 380],
       },
       hard: {
-        pipeHorizontalDistanceRange: [250, 310],
-        pipeVerticalDistanceRange: [120, 140],
+        pipeHorizontalDistanceRange: [360, 380],
+        pipeVerticalDistanceRange: [340, 380],
       },
     };
   }
@@ -141,7 +141,7 @@ class PlayScene extends BaseScene {
     // *Used for dynamic objects like a jumping character,*
     this.bird = this.physics.add
       .sprite(this.config.startPosition.x, this.config.startPosition.y, "bird") // sprites are used for animated objects.
-      .setScale(3)
+      .setScale(4)
       .setFlipX(true) // Flex image by X (180deg)
       .setOrigin(0);
 
@@ -160,11 +160,13 @@ class PlayScene extends BaseScene {
       const upperPipe = this.pipes
         .create(0, 0, "pipe")
         .setImmovable(true) // disable to move this objects
-        .setOrigin(0, 1); // create - the same as add.spite()
+        .setOrigin(0, 1) // create - the same as add.spite()
+        .setScale(1, 3);
       const lowerPipe = this.pipes
         .create(0, 0, "pipe")
         .setImmovable(true)
-        .setOrigin(0, 0);
+        .setOrigin(0, 0)
+        .setScale(1, 3);
       this.placePipe(upperPipe, lowerPipe);
     }
 
@@ -220,8 +222,8 @@ class PlayScene extends BaseScene {
 
   handleInputs() {
     // --------------------- EVENT OF PRESSING BUTTON ---------------------
-    this.input.on("pointerdown", this.flat, this);
-    this.input.keyboard.on("keydown-SPACE", this.flat, this);
+    this.input.on("pointerdown", this.flap, this);
+    this.input.keyboard.on("keydown-SPACE", this.flap, this);
     this.input.keyboard.on("keydown-R", this.gameOver, this);
   }
 
@@ -242,18 +244,19 @@ class PlayScene extends BaseScene {
       ...difficulty.pipeVerticalDistanceRange
     );
     const pipeVerticalPosition = Phaser.Math.Between(
-      20,
-      this.config.height - 20 - pipeVerticalDistance
+      200,
+      this.config.height - 200 - pipeVerticalDistance
     );
     const pipeHorizontalDistance = Phaser.Math.Between(
       ...difficulty.pipeHorizontalDistanceRange
     );
-
+    console.log("uPipe.y", uPipe.y);
     uPipe.x = rightMostX + pipeHorizontalDistance;
     uPipe.y = pipeVerticalPosition;
 
     lPipe.x = uPipe.x;
     lPipe.y = uPipe.y + pipeVerticalDistance;
+    console.log("lPipe.y", lPipe.y);
   }
 
   gameOver() {
@@ -277,7 +280,7 @@ class PlayScene extends BaseScene {
     });
   }
 
-  flat() {
+  flap() {
     if (this.isPaused) return;
     this.bird.body.velocity.y = -this.flapVelocity;
   }

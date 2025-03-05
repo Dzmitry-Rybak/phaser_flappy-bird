@@ -1,6 +1,7 @@
 
 node_modules
 build
+public
 # Mac Files
 .DS_Store
 
